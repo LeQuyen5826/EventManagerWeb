@@ -1,0 +1,10 @@
+# Bật gửi email thật:  --spring.profiles.active=smtp   (hoặc mysql,smtp)
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USER}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true

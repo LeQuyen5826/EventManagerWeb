@@ -1,0 +1,35 @@
+# Mặc định chạy bằng H2 in-memory để chạy ngay không cần cài MySQL.
+# Chạy với MySQL:  --spring.profiles.active=mysql
+spring:
+  application:
+    name: event-management
+  datasource:
+    url: jdbc:h2:mem:event_db;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    open-in-view: false            # tránh LazyInitializationException bị "giấu" (mục 3.3b)
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:doi-chuoi-bi-mat-nay-dai-it-nhat-32-ky-tu-nhe-123456}   # production: dùng biến môi trường
+    expiration-minutes: 120
+  registration:
+    waitlist-enabled: true         # true: hết chỗ -> vào danh sách chờ; false: hết chỗ -> 409
+  checkin:
+    enforce-window: true           # BR06: chỉ check-in trong khung giờ sự kiện
+    early-minutes: 120             # cho check-in sớm tối đa 120 phút
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173
+
+logging:
+  level:
+    com.cmc.eventmanagement: INFO
