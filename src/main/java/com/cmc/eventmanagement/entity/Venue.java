@@ -15,13 +15,15 @@ public class Venue {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(length = 255)
     private String address;
 
+    /** BR02: sức chứa sự kiện không vượt quá giá trị này */
     @Column(nullable = false)
-    private Integer maxCapacity;
+    private int maxCapacity;
 
-    public Venue(String name, String address, Integer maxCapacity) {
-        this.name = name; this.address = address; this.maxCapacity = maxCapacity;
+    public Venue(String name, String address, int maxCapacity) {
+        this.name = name;
+        this.address = address;
+        this.maxCapacity = maxCapacity;
     }
 }

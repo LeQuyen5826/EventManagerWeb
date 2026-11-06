@@ -1,35 +1,41 @@
-# Mặc định chạy bằng H2 in-memory để chạy ngay không cần cài MySQL.
-# Chạy với MySQL:  --spring.profiles.active=mysql
 spring:
   application:
-    name: event-management
-  datasource:
-    url: jdbc:h2:mem:event_db;MODE=MySQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
+    name: eventmanagement
+  profiles:
+    active: dev
   jpa:
-    open-in-view: false            # tránh LazyInitializationException bị "giấu" (mục 3.3b)
+    open-in-view: false
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
 
 server:
   port: 8080
 
 app:
   jwt:
-    secret: ${JWT_SECRET:doi-chuoi-bi-mat-nay-dai-it-nhat-32-ky-tu-nhe-123456}   # production: dùng biến môi trường
-    expiration-minutes: 120
-  registration:
-    waitlist-enabled: true         # true: hết chỗ -> vào danh sách chờ; false: hết chỗ -> 409
-  checkin:
-    enforce-window: true           # BR06: chỉ check-in trong khung giờ sự kiện
-    early-minutes: 120             # cho check-in sớm tối đa 120 phút
+    # >= 32 ký tự. Khi triển khai thật: đặt biến môi trường JWT_SECRET, không commit lên Git
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  event:
+    require-approval: ${EVENT_REQUIRE_APPROVAL:false}   # FR59: bật/tắt duyệt sự kiện
+    cancel-before-hours: ${CANCEL_BEFORE_HOURS:24}      # BR05
+    checkin-open-before-minutes: ${CHECKIN_OPEN_BEFORE_MINUTES:60}   # BR06
+  mail:
+    from: ${MAIL_FROM:no-reply@eventmanagement.local}
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:5173
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:5173}
+  seed:
+    enabled: true
+    admin-email: ${ADMIN_EMAIL:admin@example.com}
+    admin-password: ${ADMIN_PASSWORD:Admin@12345}
 
-logging:
-  level:
-    com.cmc.eventmanagement: INFO
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

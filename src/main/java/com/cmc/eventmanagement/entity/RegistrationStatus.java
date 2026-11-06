@@ -1,3 +1,3 @@
 package com.cmc.eventmanagement.entity;
 
-public enum RegistrationStatus { CONFIRMED, WAITLISTED, CANCELLED, CHECKED_IN }
+public enum RegistrationStatus { PENDING, CONFIRMED, CHECKED_IN, CANCELLED, REJECTED, WAITLISTED, NO_SHOW }

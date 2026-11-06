@@ -8,13 +8,13 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Swagger UI có nút Authorize để dán JWT. Mở: http://localhost:8080/swagger-ui.html */
 @Configuration
 public class OpenApiConfig {
     @Bean
-    OpenAPI openAPI() {
+    public OpenAPI openAPI() {
         return new OpenAPI()
-                .info(new Info().title("Hệ thống quản lý sự kiện API").version("1.0"))
+                .info(new Info().title("Hệ thống quản lý sự kiện API").version("1.0.0")
+                        .description("Nhóm 7 - 24IT2 - ĐH CMC"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")));

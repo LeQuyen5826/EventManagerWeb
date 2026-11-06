@@ -29,12 +29,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String email = jwtService.extractEmail(header.substring(7));   // kiểm tra chữ ký và hạn
                 UserDetails user = userDetailsService.loadUserByUsername(email);
-                if (user.isEnabled()) {
+                if (user.isEnabled() && user.isAccountNonLocked()) {
                     var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
-                SecurityContextHolder.clearContext();   // token sai: không đặt Authentication -> 401 ở bước sau
+                SecurityContextHolder.clearContext();   // token sai: không đặt Authentication -> 401 ở entry point
             }
         }
         chain.doFilter(req, res);

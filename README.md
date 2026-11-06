@@ -1,58 +1,36 @@
-# Hệ thống quản lý sự kiện (Spring Boot)
+# Hệ thống quản lý sự kiện (Nhóm 7 - 24IT2, ĐH CMC)
 
-Dự án môn **Kỹ năng lập trình nâng cao**, cài đặt đúng các công nghệ trong báo cáo mục 3.2 – 3.5.
+Backend Java 17 · Spring Boot 3.3 · Spring Data JPA · Spring Security + JWT · ZXing (QR) · Apache POI · Swagger.
 
-| Mục báo cáo | Công nghệ | Nằm ở đâu trong code |
-|---|---|---|
-| 3.2a IoC/DI, Bean | `@RestController @Service @Repository @Component @Configuration/@Bean` | toàn bộ project |
-| 3.2b Constructor Injection | `@RequiredArgsConstructor` + field `final` | `CheckInService`, `RegistrationService`... |
-| 3.2c AOP | `@Aspect @Around` ghi log + thời gian | `aspect/ServiceLoggingAspect` |
-| 3.3a REST API | Controller, ResponseEntity, phân trang | `controller/*` |
-| 3.3b JPA/Hibernate | `@ManyToOne/@OneToMany/@OneToOne/@ManyToMany`, `@Lock`, `@EntityGraph`, `@Query` | `entity/*`, `repository/*` |
-| 3.4a Validation | `@Valid`, `@NotBlank`, `@Min`, `@Future`... | `dto/*` |
-| 3.4b Exception Handling | `@RestControllerAdvice`, `ApiError` | `exception/*` |
-| 3.4c Transaction | `@Transactional`, rollback, `@TransactionalEventListener(AFTER_COMMIT)` | `RegistrationService.cancel`, `event/*` |
-| 3.5 Security | BCrypt, JWT, Filter, Role/Authority, 401/403 JSON | `security/*`, `config/SecurityConfig` |
+## Chạy nhanh (profile dev: H2 in-memory, email chỉ ghi log)
+```
+mvn spring-boot:run
+```
+- Swagger UI: http://localhost:8080/swagger-ui.html (nút Authorize → dán JWT)
+- H2 console: http://localhost:8080/h2-console (jdbc:h2:mem:eventdb, user `sa`)
+- Tài khoản demo: `admin@example.com / Admin@12345`; `organizer@example.com`, `staff@example.com`, `attendee@example.com` / `Demo@12345`
 
-## Chạy
-
-Yêu cầu: **JDK 25+**, **Maven 3.9+** (hoặc mở bằng IntelliJ, chuột phải `pom.xml` -> Add as Maven Project).
-
-```bash
-mvn spring-boot:run                                   # CSDL H2 in-memory, chạy ngay
-mvn spring-boot:run -Dspring-boot.run.profiles=mysql  # dùng MySQL (sửa DB_USER, DB_PASSWORD)
-mvn test                                              # unit test Mockito
+## Chạy với MySQL + SMTP (profile prod)
+Tạo DB `event_db`, rồi đặt biến môi trường: `DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET (>=32 ký tự), ADMIN_PASSWORD, MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD`
+```
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
 ```
 
-- Swagger UI: http://localhost:8080/swagger-ui.html (bấm **Authorize**, dán token từ `/api/auth/login`)
-- Gửi email thật: thêm profile `smtp` và đặt biến môi trường `MAIL_USER`, `MAIL_PASSWORD`. Mặc định chỉ ghi log email.
-- Đổi khóa JWT bằng biến môi trường `JWT_SECRET` (>= 32 ký tự).
+## Kịch bản thử nhanh
+1. `POST /api/auth/login` (organizer) → lấy token
+2. `POST /api/events` (categoryId=1, venueId=1) → `POST /api/events/{id}/publish`
+3. Đăng nhập attendee → `POST /api/events/{id}/registrations` (cần trong khoảng registrationOpenAt..CloseAt)
+4. `GET /api/registrations/{id}/qr` lấy ảnh QR; organizer `POST /api/events/{id}/staff` gán staff
+5. Staff `POST /api/checkin/scan {"qrToken": "..."}` (trong khung giờ BR06: từ 60 phút trước giờ bắt đầu)
+6. `GET /api/events/{id}/report`, `/report/export` (Excel)
 
-## Tài khoản demo (tự tạo khi khởi động)
+## Chưa làm (ngoài phạm vi code mẫu)
+Quên mật khẩu qua email (FR03 phần reset), kích hoạt email (FR01), Google OAuth (FR08), duyệt từng đơn đăng ký (FR34), nhắc lịch tự động (FR49), gửi thông báo thủ công (FR50), xuất PDF (FR55), .ics (FR22), đánh giá sự kiện (FR57), nhân bản sự kiện (FR17).
 
-| Vai trò | Email | Mật khẩu |
-|---|---|---|
-| ADMIN | admin@example.com | Admin@123 |
-| ORGANIZER | organizer@example.com | Abc@12345 |
-| ATTENDEE | attendee@example.com | Abc@12345 |
-| STAFF | staff@example.com | Abc@12345 |
-
-Dữ liệu mẫu: sự kiện #1 "Hội thảo AI trong giáo dục" (sức chứa 150, đang mở đăng ký) và sự kiện #2 "Workshop Spring Boot" đang diễn ra
-(sức chứa 2) kèm một vé mẫu có mã QR `DEMO-QR-TOKEN-0001` để thử check-in.
-
-## Kịch bản test bằng Postman/Swagger (để chụp ảnh cho báo cáo)
-
-1. `POST /api/auth/login` `{"email":"attendee@example.com","password":"Abc@12345"}` -> 200, lấy `accessToken`.
-2. `GET /api/me/profile` không gửi token -> **401**.
-3. ATTENDEE gọi `GET /api/admin/users` -> **403**; đăng nhập ADMIN gọi lại -> **200**.
-4. ORGANIZER `POST /api/events` với `title` rỗng, `capacity` 0 -> **400** có `errors` theo từng trường.
-5. ORGANIZER tạo sự kiện hợp lệ -> **201** + header `Location`, trạng thái `DRAFT`; `POST /api/events/{id}/publish` để công bố.
-6. ATTENDEE `POST /api/events/1/registrations` `{"studentId":"BIT240000","organization":"24IT2"}` -> **201**, có `qrToken`; gọi lần 2 -> **409**.
-7. ATTENDEE `DELETE /api/registrations/{id}` -> **204** (BR05: phải trước giờ bắt đầu >= 24 giờ).
-8. STAFF `POST /api/checkin/scan` `{"qrToken":"DEMO-QR-TOKEN-0001"}` -> **200**; quét lại -> **409**.
-9. ORGANIZER `GET /api/events/2/report` -> thống kê; xem console để thấy log của Aspect: `CheckInService.scan -> OK (21 ms)`.
-
-## Cấu hình đáng chú ý (`application.yml`)
-
-- `app.registration.waitlist-enabled`: `true` hết chỗ thì vào danh sách chờ (201, `WAITLISTED`); `false` hết chỗ trả **409**.
-- `app.checkin.enforce-window`: bật/tắt kiểm tra khung giờ check-in (BR06).
+## Giao diện web (frontend)
+Đã tích hợp sẵn trong `src/main/resources/static` (HTML/CSS/JS thuần, không cần cài Node). Chạy `mvn spring-boot:run` rồi mở **http://localhost:8080/**.
+- Khách: xem/tìm sự kiện, chi tiết + lịch trình · Người tham gia: đăng ký, hủy, xem mã QR (Vé của tôi), thông báo, hồ sơ
+- Người tổ chức: tạo/sửa/công bố/hủy sự kiện, lịch trình, danh sách đăng ký, phân công nhân viên, báo cáo + xuất Excel
+- Nhân viên: trang Check-in (quét QR bằng camera trên Chrome/Edge hoặc dán mã, check-in thủ công, số liệu thời gian thực)
+- Admin: dashboard, quản lý người dùng/vai trò/khóa, duyệt sự kiện, danh mục + địa điểm, nhật ký
+Lưu ý: `SecurityConfig` đã được thêm `permitAll` cho `/`, `/css/**`, `/js/**` để trình duyệt tải được giao diện.

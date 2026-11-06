@@ -1,11 +1,9 @@
 package com.cmc.eventmanagement.security;
 
-import com.cmc.eventmanagement.config.AppProperties;
-import com.cmc.eventmanagement.entity.Role;
 import com.cmc.eventmanagement.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -13,15 +11,15 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-/** Tạo và kiểm tra JWT (HMAC-SHA256). Khóa lấy từ cấu hình/biến môi trường JWT_SECRET. */
-@Component
+@Service
 public class JwtService {
-    private final AppProperties props;
+    private final JwtProperties props;
     private final SecretKey key;
 
-    public JwtService(AppProperties props) {
+    public JwtService(JwtProperties props) {
         this.props = props;
-        this.key = Keys.hmacShaKeyFor(props.jwt().secret().getBytes(StandardCharsets.UTF_8));
+        // khóa HMAC lấy từ biến môi trường JWT_SECRET (>= 32 ký tự), không commit lên Git
+        this.key = Keys.hmacShaKeyFor(props.secret().getBytes(StandardCharsets.UTF_8));
     }
 
     public String generate(User u) {
@@ -29,9 +27,9 @@ public class JwtService {
         return Jwts.builder()
                 .subject(u.getEmail())
                 .claim("uid", u.getId())
-                .claim("roles", u.getRoles().stream().map(Role::getName).toList())
+                .claim("roles", u.getRoles().stream().map(r -> r.getName().name()).toList())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(props.jwt().expirationMinutes(), ChronoUnit.MINUTES)))
+                .expiration(Date.from(now.plus(props.expirationMinutes(), ChronoUnit.MINUTES)))
                 .signWith(key)
                 .compact();
     }
@@ -41,4 +39,6 @@ public class JwtService {
         return Jwts.parser().verifyWith(key).build()
                 .parseSignedClaims(token).getPayload().getSubject();
     }
+
+    public long expiresInSeconds() { return props.expirationMinutes() * 60; }
 }

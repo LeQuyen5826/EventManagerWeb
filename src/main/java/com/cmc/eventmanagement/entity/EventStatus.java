@@ -1,3 +1,4 @@
 package com.cmc.eventmanagement.entity;
 
-public enum EventStatus { DRAFT, PUBLISHED, CANCELLED }
+/** Nháp -> (Chờ duyệt) -> Đã công bố -> Đang diễn ra -> Đã kết thúc | Bị từ chối | Đã hủy */
+public enum EventStatus { DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED, ONGOING, ENDED, CANCELLED }

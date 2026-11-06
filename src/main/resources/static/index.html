@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hệ thống quản lý sự kiện</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎫</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="#/">🎫 <span>EventHub</span></a>
+      <button class="burger" id="burger" aria-label="Menu">☰</button>
+      <nav id="nav" class="nav"></nav>
+    </div>
+  </header>
+  <main id="app" class="container"></main>
+  <footer class="site-footer"><div class="container foot-grid">
+    <div><div class="brand">EventHub</div><p class="muted small">Nền tảng đăng ký và quản lý sự kiện cho trường học và tổ chức vừa và nhỏ.</p></div>
+    <div><h3>Người tham gia</h3><a href="#/">Tìm sự kiện</a><a href="#/tickets">Vé của tôi</a><a href="#/notifications">Thông báo</a></div>
+    <div><h3>Ban tổ chức</h3><a href="#/organizer">Quản lý sự kiện</a><a href="#/event-form">Tạo sự kiện</a><a href="#/checkin">Check-in tại cửa</a></div>
+    <div><h3>Dự án</h3><span class="muted small">Nhóm 7 – 24IT2<br>Đại học CMC<br>Kỹ năng lập trình nâng cao</span></div></div>
+    <div class="container foot-copy muted small">© 2026 EventHub</div></footer>
+  <div id="toasts"></div>
+  <div id="modal" class="modal hidden"><div class="modal-box" id="modalBox"></div></div>
+  <script src="/js/core.js"></script>
+  <script src="/js/public.js"></script>
+  <script src="/js/user.js"></script>
+  <script src="/js/manage.js"></script>
+  <script src="/js/admin.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

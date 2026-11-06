@@ -1,9 +1,9 @@
 package com.cmc.eventmanagement.controller;
 
-import com.cmc.eventmanagement.dto.LoginRequest;
-import com.cmc.eventmanagement.dto.LoginResponse;
-import com.cmc.eventmanagement.dto.RegisterUserRequest;
-import com.cmc.eventmanagement.dto.UserResponse;
+import com.cmc.eventmanagement.dto.request.LoginRequest;
+import com.cmc.eventmanagement.dto.request.RegisterUserRequest;
+import com.cmc.eventmanagement.dto.response.TokenResponse;
+import com.cmc.eventmanagement.dto.response.UserResponse;
 import com.cmc.eventmanagement.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest req) {
-        return authService.login(req);
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req) {
+        return ResponseEntity.ok(authService.login(req));
     }
 }

@@ -1,6 +1,6 @@
 package com.cmc.eventmanagement.service;
 
-/** NotificationService chỉ phụ thuộc interface này (giảm coupling). */
+/** NotificationService chỉ biết interface này; môi trường chạy chọn implementation bằng @Profile. */
 public interface EmailSender {
-    void send(String to, String subject, String body);
+    void send(String to, String subject, String text, byte[] pngAttachment);
 }

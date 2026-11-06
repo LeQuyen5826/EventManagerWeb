@@ -11,30 +11,41 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    /** FR30: khóa ghi dòng sự kiện để hai người đăng ký/hủy cùng lúc không vượt sức chứa. */
+    /** FR30: khóa ghi dòng sự kiện để các request đăng ký đồng thời xếp hàng tuần tự. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Event e where e.id = :id")
     Optional<Event> findByIdForUpdate(@Param("id") Long id);
 
-    /** FR24, FR25: tìm kiếm + lọc + phân trang. @EntityGraph nạp venue, category trong một truy vấn (tránh N+1). */
+    /** FR24, FR25: tìm kiếm, lọc, phân trang. @EntityGraph nạp venue + category trong 1 truy vấn (tránh N+1). */
     @EntityGraph(attributePaths = {"venue", "category"})
     @Query("""
            select e from Event e
            where e.status = :status
-             and lower(e.title) like lower(concat('%', :keyword, '%'))
+             and (:keyword is null or lower(e.title) like lower(concat('%', :keyword, '%')))
              and (:categoryId is null or e.category.id = :categoryId)
+             and (:venueId is null or e.venue.id = :venueId)
+             and (:startFrom is null or e.startAt >= :startFrom)
+             and (:startTo is null or e.startAt <= :startTo)
            """)
     Page<Event> search(@Param("keyword") String keyword, @Param("categoryId") Long categoryId,
-                       @Param("status") EventStatus status, Pageable pageable);
+                       @Param("venueId") Long venueId, @Param("startFrom") LocalDateTime startFrom,
+                       @Param("startTo") LocalDateTime startTo, @Param("status") EventStatus status, Pageable pageable);
 
-    /** BR07: người dùng là organizer hoặc nhân viên được phân công của sự kiện? (>0 là đúng) */
-    @Query("""
-           select count(e) from Event e left join e.staff s
-           where e.id = :eventId and (e.organizer.id = :userId or s.id = :userId)
-           """)
-    long countOrganizerOrStaff(@Param("eventId") Long eventId, @Param("userId") Long userId);
+    @EntityGraph(attributePaths = {"venue", "category"})
+    Page<Event> findByOrganizerId(Long organizerId, Pageable pageable);
+
+    long countByStatus(EventStatus status);
+
+    @EntityGraph(attributePaths = {"venue", "category"})
+    Page<Event> findByStatus(EventStatus status, Pageable pageable);
+
+    /** Dùng cho scheduler cập nhật trạng thái. */
+    List<Event> findByStatusAndStartAtLessThanEqual(EventStatus status, LocalDateTime time);
+    List<Event> findByStatusAndEndAtLessThanEqual(EventStatus status, LocalDateTime time);
 }

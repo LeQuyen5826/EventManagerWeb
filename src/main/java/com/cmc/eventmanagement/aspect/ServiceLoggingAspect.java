@@ -7,10 +7,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
-/**
- * Cross-cutting concern: ghi tên method và thời gian chạy của mọi Service.
- * Không ghi tham số vì có thể chứa qrToken hoặc mật khẩu.
- */
+/** Ghi tên method + thời gian chạy. Không ghi tham số vì có thể chứa qrToken/mật khẩu. */
 @Aspect
 @Component
 @Slf4j

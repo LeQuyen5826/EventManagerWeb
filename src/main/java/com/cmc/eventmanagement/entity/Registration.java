@@ -1,5 +1,6 @@
 package com.cmc.eventmanagement.entity;
 
+import com.cmc.eventmanagement.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,56 +10,44 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "registrations",
-        uniqueConstraints = @UniqueConstraint(name = "uk_registration_event_user", columnNames = {"event_id", "user_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"event_id", "user_id"}))   // BR04
 @Getter @Setter @NoArgsConstructor
 public class Registration {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "event_id")
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
     private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RegistrationStatus status;
 
-    @Column(name = "qr_token", unique = true, length = 64)
+    /** Token ngẫu nhiên, không chứa thông tin cá nhân (FR37). Null khi đang ở danh sách chờ. */
+    @Column(unique = true, length = 64)
     private String qrToken;
 
-    @Column(length = 30)
     private String studentId;
-
-    @Column(length = 100)
     private String organization;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @PrePersist
-    void onCreate() { if (createdAt == null) createdAt = LocalDateTime.now(); }
-
-    /** Có chỗ: xác nhận và cấp mã QR. */
-    public void confirm(String token) {
+    public void confirm(String newQrToken) {
         this.status = RegistrationStatus.CONFIRMED;
-        this.qrToken = token;
+        this.qrToken = newQrToken;
     }
 
-    /** Hết chỗ: vào danh sách chờ, chưa có QR. */
-    public void waitlist() {
-        this.status = RegistrationStatus.WAITLISTED;
-        this.qrToken = null;
-    }
-
-    /** FR39: hủy đăng ký thì mã QR mất hiệu lực. */
+    /** FR33, FR39: hủy đăng ký và vô hiệu hóa QR. */
     public void cancel() {
+        if (status == RegistrationStatus.CHECKED_IN) {
+            throw new BusinessException("Không thể hủy đăng ký đã check-in");
+        }
         this.status = RegistrationStatus.CANCELLED;
-        this.qrToken = null;
     }
 
-    public void checkIn() { this.status = RegistrationStatus.CHECKED_IN; }
+    public void markCheckedIn() { this.status = RegistrationStatus.CHECKED_IN; }
+    public void undoCheckIn() { this.status = RegistrationStatus.CONFIRMED; }
 }

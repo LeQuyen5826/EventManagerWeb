@@ -4,13 +4,17 @@ import com.cmc.eventmanagement.security.JwtAuthenticationFilter;
 import com.cmc.eventmanagement.security.RestAccessDeniedHandler;
 import com.cmc.eventmanagement.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,60 +27,62 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableMethodSecurity            // bật @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
     private final RestAuthenticationEntryPoint entryPoint;
     private final RestAccessDeniedHandler deniedHandler;
-    private final AppProperties props;
+
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
-    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
+    /** Tránh filter JWT bị đăng ký thêm một lần nữa ngoài SecurityFilterChain. */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter f) {
+        FilterRegistrationBean<JwtAuthenticationFilter> reg = new FilterRegistrationBean<>(f);
+        reg.setEnabled(false);
+        return reg;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())          // token nằm trong header Authorization, không dùng cookie phiên
+            .csrf(AbstractHttpConfigurer::disable)      // token nằm ở header Authorization, không dùng cookie phiên
             .cors(Customizer.withDefaults())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
-                // công khai
-                .requestMatchers("/api/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/*", "/api/categories", "/api/venues").permitAll()
-                // ORGANIZER
-                .requestMatchers(HttpMethod.POST, "/api/events", "/api/events/*/staff").hasRole("ORGANIZER")
-                // ORGANIZER (chủ sự kiện, kiểm tra ở Service) hoặc ADMIN
-                .requestMatchers(HttpMethod.POST, "/api/events/*/publish", "/api/events/*/cancel").hasAnyRole("ORGANIZER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/events/*/report", "/api/events/*/registrations").hasAnyRole("ORGANIZER", "ADMIN")
-                // ATTENDEE
-                .requestMatchers(HttpMethod.POST, "/api/events/*/registrations").hasRole("ATTENDEE")
-                .requestMatchers(HttpMethod.DELETE, "/api/registrations/*").hasRole("ATTENDEE")
-                .requestMatchers(HttpMethod.GET, "/api/registrations/*/qr").hasRole("ATTENDEE")
-                // STAFF, ORGANIZER
-                .requestMatchers("/api/checkin/**").hasAnyRole("STAFF", "ORGANIZER")
-                // ADMIN
+                .requestMatchers("/", "/index.html", "/favicon.ico", "/css/**", "/js/**").permitAll()   // giao diện web (static)
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/{id}", "/api/events/{id}/sessions",
+                        "/api/categories", "/api/venues").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // còn lại: chỉ cần đăng nhập (/api/me/**)
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(deniedHandler))
+            .headers(h -> h.frameOptions(f -> f.sameOrigin()))     // cho phép H2 console ở profile dev
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-    /** CORS: chỉ cho phép origin của frontend. */
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(props.cors().allowedOrigins());
+        c.setAllowedOrigins(allowedOrigins);                   // chỉ cho phép origin của frontend
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("*"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", c);
-        return source;
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        c.setExposedHeaders(List.of("Location", "Content-Disposition"));
+        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/**", c);
+        return src;
     }
 }

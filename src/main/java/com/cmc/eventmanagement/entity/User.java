@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,12 +28,27 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
+    private String avatarUrl;
+
     private boolean enabled = true;
 
-    // EAGER: vai trò luôn cần khi xác thực (JwtService, UserDetailsServiceImpl), tập nhỏ nên không đáng ngại
+    /** FR02: khóa tạm thời sau 5 lần đăng nhập sai liên tiếp */
+    private int failedLoginCount = 0;
+    private LocalDateTime lockedUntil;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public boolean hasRole(RoleName name) {
+        return roles.stream().anyMatch(r -> r.getName() == name);
+    }
+
+    public boolean isTemporarilyLocked(LocalDateTime now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
 }

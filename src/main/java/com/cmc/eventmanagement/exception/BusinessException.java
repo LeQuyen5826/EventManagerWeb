@@ -1,6 +1,6 @@
 package com.cmc.eventmanagement.exception;
 
-/** 400: vi phạm quy tắc nghiệp vụ (BR01, BR02, ngoài thời gian đăng ký/check-in...). */
+/** Vi phạm quy tắc nghiệp vụ (BR01, BR02, BR05, BR06...) -> 400 */
 public class BusinessException extends RuntimeException {
     public BusinessException(String message) { super(message); }
 }

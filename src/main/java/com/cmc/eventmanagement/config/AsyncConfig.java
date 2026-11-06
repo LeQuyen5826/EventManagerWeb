@@ -7,17 +7,17 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
-/** Executor riêng để gửi email bất đồng bộ, không làm chậm request chính. */
+/** Executor riêng cho việc gửi email, không làm chậm API đăng ký (FR47). */
 @Configuration
 @EnableAsync
 public class AsyncConfig {
-    @Bean(name = "taskExecutor")
-    Executor taskExecutor() {
+    @Bean("emailExecutor")
+    public Executor emailExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
         ex.setCorePoolSize(2);
-        ex.setMaxPoolSize(4);
-        ex.setQueueCapacity(100);
-        ex.setThreadNamePrefix("mail-");
+        ex.setMaxPoolSize(8);
+        ex.setQueueCapacity(500);
+        ex.setThreadNamePrefix("email-");
         ex.initialize();
         return ex;
     }
